@@ -6,7 +6,7 @@ clc;clear all;
 % Date: February 17 2019
 % Course: Gas Turbine Design
 
-% Purpose: Create a model for the Turbine Design 
+% Purpose: Create a model for the Turbine Design
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -17,7 +17,7 @@ clc;clear all;
 % Station 2 = Vane Exit and Blade Inlet
 % Station 3 = Blade Exit
 
-% Cycle Analysis Variables 
+% Cycle Analysis Variables
 
 % eta_i = 0.87; % desired efficiency
 
@@ -41,10 +41,10 @@ Cp = 1148; % Gas specific heat capacity [kg/JK]
 gamma = 1.333; % Gas Gamma
 Rg = 287; % Gas Constant
 
-% Assumptions 
-alpha_3 = 5; % Blade exit swirl angle [deg] Range: -5 to 30
+% Assumptions
+alpha_3 = 20; % Blade exit swirl angle [deg] Range: -5 to 30
 M_3 = 0.3; % Blade exit mach number. Range: 0.3-0.45
-R = 0.4; % Reaction at the meanline. 
+R = 0.45; % Reaction at the meanline.
 max_U_h = 1100*0.3048; % Blade speed at meanline [m/s]
 inc_1 = 0; % Vane Incidence [deg]
 dev_2 = 0; % Vane Deviation [deg]
@@ -94,7 +94,7 @@ P_2 = R * (P_1 - P_3) + P_3;
 Po_2 = P_2*(To_2/T_2)^(gamma/(gamma-1));
 rho_2 = P_2/(Rg * T_2); % Density [kg/m3]
 V_2 = sqrt(2*Cp*(To_2 - T_2)); % Absolute Velocity [m/s]
-M_2 = V_2/sqrt(T_2 * gamma * Rg); % Mach 
+M_2 = V_2/sqrt(T_2 * gamma * Rg); % Mach
 Va_2 = m_2 / (rho_2 * A_2); % Axial Velocity [m/s]
 Vu_2 = sqrt(V_2^2 - Va_2^2); % Swirl Velocity [m/s]
 alpha_2 = atand(Vu_2 / Va_2); % Swirl angle [deg]
@@ -106,7 +106,7 @@ Vr_2 = sqrt(Va_2^2 + Vru_2^2); % Relative velocity [m/s]
 alpha_r_2 = atand(Vru_2 / Va_2); % Relative swirl angle [deg]
 T_r_2 = To_2 - (Vr_2^2)/(2*Cp); % Relative temperature [K]
 Po_r_2 = P_2 * (T_r_2 / To_2)^(gamma / (gamma - 1)); % Relative Total Pressure[Pa]
-M_r_2 = Vr_2/sqrt(gamma*Rg*T_r_2); % Relative Mach 
+M_r_2 = Vr_2/sqrt(gamma*Rg*T_r_2); % Relative Mach
 
 % Station 3 Relative Velocity Triangle
 Vru_3 = U + Vu_3; % Relative swirl velocity [m/s]
@@ -114,7 +114,7 @@ Vr_3 = sqrt(Vru_3^2 + Va_3^2); % Relative Velocity [m/s]
 alpha_r_3 = atand(Vr_3/Va_3); % Relative swirl angle [deg]
 T_r_3 = To_3 - (Vr_3^2)/(2*Cp); % Relative temperature [K]
 Po_r_3 = P_3 * (T_r_3 / To_3)^(-gamma / (gamma - 1)); % Relative Total Pressure [Pa]
-M_r_3 = Vr_3/sqrt(gamma*Rg*T_r_3); % Relative Mach 
+M_r_3 = Vr_3/sqrt(gamma*Rg*T_r_3); % Relative Mach
 
 % double check the velocity reaction
 R_check = (Vr_3^2 - Vr_2^2)/(Vr_3^2 - Vr_2^2 + V_2^2 - V_3^2);
@@ -135,16 +135,43 @@ end
 %%% RADII AND STRUCTURAL LIMITATIONS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-A_rpm = 1550*A_2; 
+A_rpm = 1550*A_2;
 AN2_max = 4.5E10; % Max AN2 [in2 rpm 0.5]
 N_rpm = sqrt(AN2_max/A_rpm); % Rotation speed [rpm]
-%N_rpm = 30000;
+%N_rpm = 15000;
 N_rads = N_rpm * (1/60) * (2*pi); % Rotation speed [rad/s]
 
+r_h_min = max_U_h/N_rads;
+
 r_m_2 = U/N_rads; % Mean radius at 2 [m]
-r_m_3 = r_m_2; % Mean radius at 3 [m]
 
 r_h_2 = (-A_2/pi + 4*r_m_2^2)/(4 * r_m_2); % Hub radius at 2 [m]
+
+% Iterate to find an r_h that works
+
+interval = 0.0001:0.0001:0.5;
+check_rh = 0;
+
+if r_h_2 > r_h_min % if rhub is violating the max rim speed
+    fprintf('Using RPM does not work. Testing with max hub speed\n');
+    for i=1:length(interval)
+        if abs(interval(i)-((max_U_h/U)*0.5*(interval(i)+ sqrt(A_2/pi + interval(i)^2)))) < 0.0001
+            r_h_2 = interval(i);
+            r_m_2 = r_h_2*U/max_U_h;
+            check_rh = 1;
+        end
+    end
+end
+
+if check_rh == 1
+    fprintf('Successful r_h calculated using max hub speed\n')
+    fprintf('rotational speed is %6f\n',(U/r_m_2)*(30/pi))
+end
+
+
+
+r_m_3 = r_m_2; % Mean radius at 3 [m]
+
 r_h_3 = r_h_2; % Hub radius at 3 [m]
 r_h_1 = r_h_2; % Hub radius at 1 [m] Assuming hub radius is cst
 
@@ -171,7 +198,7 @@ end
 %%% HUB VELOCITY TRIANGLES %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-U_h = U * (r_m_2/r_h_2);
+U_h = r_h_2 * U/r_m_2;
 
 % Station 1
 Vu_h_1 = (r_m_1/r_h_1) * Vu_1; % hub swirl vel [m/s]
@@ -208,7 +235,7 @@ end
 %%% TIP VELOCITY TRIANGLES %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-U_t = U * (r_m_2/r_t_2);
+U_t = U * (r_t_2/r_m_2);
 
 % Station 1
 Vu_t_1 = (r_m_1/r_t_1) * Vu_1; % tip swirl vel [m/s]
