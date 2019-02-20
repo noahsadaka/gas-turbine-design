@@ -28,6 +28,8 @@ Po_1 = 315940.86; % Turbine Inlet Pressure [Pa]
 m_1 = 4.842; % Turbine Inlet Massflow [kg/s]
 
 To_2 = 1126.67; % Total temperature after bleed air addition [K]
+%To_2 = To_1;
+
 m_2 = 5.00; % Mass flow through blade [kg/s]
 
 To_3 = 972.74; % Total temperature after station [K]
@@ -42,15 +44,16 @@ gamma = 1.333; % Gas Gamma
 Rg = 287; % Gas Constant
 
 % Assumptions
-alpha_3 = 20; % Blade exit swirl angle [deg] Range: -5 to 30
-M_3 = 0.3; % Blade exit mach number. Range: 0.3-0.45
+alpha_3 = 30; % Blade exit swirl angle [deg] Range: -5 to 30
+M_3 = 0.45; % Blade exit mach number. Range: 0.3-0.45
 R = 0.45; % Reaction at the meanline.
 max_U_h = 1100*0.3048; % Blade speed at meanline [m/s]
 inc_1 = 0; % Vane Incidence [deg]
 dev_2 = 0; % Vane Deviation [deg]
 inc_2 = 0; % Blade Incidence [deg]
 dev_3 = 0; % Blade Deviation [deg]
-
+zweif_vane = 0.8;
+zweif_blade = 0.85;
 
 % Given Vane Variables
 AR_v = 0.7; % Vane Aspect Ratio
@@ -98,38 +101,47 @@ M_2 = V_2/sqrt(T_2 * gamma * Rg); % Mach
 Va_2 = m_2 / (rho_2 * A_2); % Axial Velocity [m/s]
 Vu_2 = sqrt(V_2^2 - Va_2^2); % Swirl Velocity [m/s]
 alpha_2 = atand(Vu_2 / Va_2); % Swirl angle [deg]
-U = Ws / (Vu_2 - Vu_3); % Blade Velocity [m/s]
+U = Ws / (Vu_2 + Vu_3); % Blade Velocity [m/s]
 
 % Station 2 Relative Velocity Triangle
 Vru_2 = Vu_2 - U; % Relative swirl velocity [m/s]
 Vr_2 = sqrt(Va_2^2 + Vru_2^2); % Relative velocity [m/s]
 alpha_r_2 = atand(Vru_2 / Va_2); % Relative swirl angle [deg]
-T_r_2 = To_2 - (Vr_2^2)/(2*Cp); % Relative temperature [K]
-Po_r_2 = P_2 * (T_r_2 / To_2)^(gamma / (gamma - 1)); % Relative Total Pressure[Pa]
-M_r_2 = Vr_2/sqrt(gamma*Rg*T_r_2); % Relative Mach
+%T_r_2 = To_2 - (Vr_2^2)/(2*Cp); % Relative temperature [K]
+To_r_2 = T_2 + Vr_2^2/(2*Cp);
+Po_r_2 = P_2 * (T_2 / To_r_2)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
+M_r_2 = Vr_2/sqrt(gamma*Rg*T_2); % Relative Mach
 
 % Station 3 Relative Velocity Triangle
 Vru_3 = U + Vu_3; % Relative swirl velocity [m/s]
 Vr_3 = sqrt(Vru_3^2 + Va_3^2); % Relative Velocity [m/s]
 alpha_r_3 = atand(Vr_3/Va_3); % Relative swirl angle [deg]
-T_r_3 = To_3 - (Vr_3^2)/(2*Cp); % Relative temperature [K]
-Po_r_3 = P_3 * (T_r_3 / To_3)^(-gamma / (gamma - 1)); % Relative Total Pressure [Pa]
-M_r_3 = Vr_3/sqrt(gamma*Rg*T_r_3); % Relative Mach
+% T_r_3 = To_3 - (Vr_3^2)/(2*Cp); % Relative temperature [K]
+% Po_r_3 = P_3 * (T_r_3 / To_3)^(gamma / (gamma - 1)); % Relative Total Pressure [Pa]
+% M_r_3 = Vr_3/sqrt(gamma*Rg*T_r_3); % Relative Mach
+To_r_3 = T_3 + Vr_3^2/(2*Cp);
+Po_r_3 = P_3 * (T_3 / To_r_3)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
+M_r_3 = Vr_3/sqrt(gamma*Rg*T_3); % Relative Mach
 
 % double check the velocity reaction
 R_check = (Vr_3^2 - Vr_2^2)/(Vr_3^2 - Vr_2^2 + V_2^2 - V_3^2);
+R_check2 = (Vr_3^2 - Vr_2^2)/(2*U*(Vu_2-Vu_3));
 
-
-if R_check ~= R
-    error = 1;
-    fprintf('Reactions do not match fuuuuuck\n')
-end
+% if R_check ~= R
+%     error = 1;
+%     fprintf('Reactions do not match fuuuuuck\n')
+% end
 
 if Po_1 > Po_2 && Po_r_2 > Po_r_3
 else
     error = 1;
-    fprintf('Pressure Physics is not respected Tabarnak\n')
+    fprintf('Pressure physics is not respected Tabarnak\n')
 end
+
+% if T_3 < T_2 && T_2 > T_1 && T_r_2 > T_r_3
+%     error = 1;
+%     fprintf('Temperature physics is not respected fuck\n');
+% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% RADII AND STRUCTURAL LIMITATIONS %%%
@@ -168,8 +180,6 @@ if check_rh == 1
     fprintf('rotational speed is %6f\n',(U/r_m_2)*(30/pi))
 end
 
-
-
 r_m_3 = r_m_2; % Mean radius at 3 [m]
 
 r_h_3 = r_h_2; % Hub radius at 3 [m]
@@ -180,7 +190,6 @@ r_t_3 = r_t_2; % Tip radius at 3 [m]
 
 r_t_1 = sqrt(A_1/pi + r_h_1^2); % Tip radius at 1 [m]
 r_m_1 = 0.5*(r_t_1 + r_h_1); % Mean radius at 1 [m]
-
 
 if r_m_2 < r_h_2
     error = 1;
@@ -227,9 +236,14 @@ alpha_r_h_3 = atand(Vu_h_3/Va_h_3); % Relative swirl angle [m/s]
 
 R_hub = (Vr_h_3^2 - Vr_h_2^2)/(Vr_h_3^2 - Vr_h_2^2 + V_h_2^2 - V_h_3^2);
 
+if R_hub < 0
+    error = 1;
+    fprintf('Hub reaction is negative\n')
+end
+
 if U_h > max_U_h
-    fprintf('fuck velocities\n')
-    
+    error = 1;
+    fprintf('fuck velocities\n')    
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% TIP VELOCITY TRIANGLES %%%
@@ -264,11 +278,55 @@ alpha_r_t_3 = atand(Vu_t_3/Va_t_3); % Relative swirl angle [m/s]
 
 R_tip = (Vr_t_3^2 - Vr_t_2^2)/(Vr_t_3^2 - Vr_t_2^2 + V_t_2^2 - V_t_3^2);
 
+%%%%%%%%%%%%%%%%
+%%% GEOMETRY %%%
+%%%%%%%%%%%%%%%%
+
+vane_height = 0.5*((r_t_1-r_h_1)+(r_t_2-r_h_2));
+blade_height = r_t_3-r_h_3;
+
+vane_actual_chord = vane_height/AR_v;
+blade_actual_chord = blade_height/AR_b;
+
+%%%%%%%%%%%%%%%%%%%%%
+%%% STAGGER ANGLE %%%
+%%%%%%%%%%%%%%%%%%%%%
+
+stagger_data = csvread('stagger_angle.csv',1);
+beta_1 = stagger_data(:,1);
+beta_2 = stagger_data(:,2:end);
+beta_2_vector = [80,75,70,65,60,55,50];
+
+stagger_vane = interp2(beta_2_vector,beta_1,beta_2,alpha_2+dev_2,alpha_1+inc_1);
+stagger_blade = interp2(beta_2_vector,beta_1,beta_2,alpha_r_3+dev_3,alpha_r_2+inc_2);
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%% NUMBER OF MORTYS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+vane_axial_chord = vane_actual_chord * cosd(stagger_vane);
+blade_axial_chord = blade_actual_chord * cosd(stagger_blade);
+
+vane_pitch = (zweif_vane*vane_axial_chord*0.5)/((tand(alpha_1) + tand(alpha_2))* ((cosd(alpha_2))^2));
+vane_number = pi*(r_m_2+r_m_1)/vane_pitch;
+
+blade_pitch = (zweif_blade*blade_axial_chord*0.5)/((tand(alpha_r_2) + tand(alpha_r_3))* ((cosd(alpha_r_3))^2));
+blade_number = 2*pi*r_m_2/blade_pitch;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% THICKNESS OVER CHORD %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+tmaxc_data = csvread('tmaxc_v_betas.csv',1);
+
+vane_max_thickness = vane_actual_chord*interp1(tmaxc_data(:,1),tmaxc_data(:,2),alpha_1 + inc_1 + alpha_2 + dev_2);
+blade_max_thickness = blade_actual_chord*interp1(tmaxc_data(:,1),tmaxc_data(:,2),alpha_r_2 + inc_2 + alpha_r_3 + dev_3);
 
 
 % if error == 1
 %     fprintf('Critical Error Somewhere!\n')
 % end
+
 
 
 
