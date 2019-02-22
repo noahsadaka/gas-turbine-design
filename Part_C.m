@@ -91,13 +91,14 @@ alpha_3 = atand(Vu_3/Va_3); % Swirl angle [deg]
 
 % Station 2 Absolute Velocity Triangle
 Ws = W/m_2; % Specific work [W/kg]
-A_2 = A_3; % Assumption: roton area is constant
+A_2 = A_3; % Assumption: rotor area is constant
 T_2 = R * (T_1 - T_3) + T_3; % Temperature at station 2 [K]
+V_2 = sqrt(2*Cp*(To_2 - T_2)); % Absolute Velocity [m/s]
+M_2 = V_2/sqrt(T_2 * gamma * Rg); % Mach
+% need to determine pressure another way
 P_2 = R * (P_1 - P_3) + P_3;
 Po_2 = P_2*(To_2/T_2)^(gamma/(gamma-1));
 rho_2 = P_2/(Rg * T_2); % Density [kg/m3]
-V_2 = sqrt(2*Cp*(To_2 - T_2)); % Absolute Velocity [m/s]
-M_2 = V_2/sqrt(T_2 * gamma * Rg); % Mach
 Va_2 = m_2 / (rho_2 * A_2); % Axial Velocity [m/s]
 Vu_2 = sqrt(V_2^2 - Va_2^2); % Swirl Velocity [m/s]
 alpha_2 = atand(Vu_2 / Va_2); % Swirl angle [deg]
@@ -222,7 +223,7 @@ V_h_2 = sqrt(Va_h_2^2 + Vu_h_2^2); % hub velocity [m/s]
 alpha_h_2 = atand(Vu_h_2/Va_h_2); % Swirl angle [deg]
 Vru_h_2 = Vu_h_2 - U_h; % Relative swirl velocity [m/s]
 Vr_h_2 = sqrt(Vru_h_2^2 + Va_h_2^2); % Relative velocity [m/s]
-alpha_r_h_2 = atand(Vu_h_2/Va_h_2); % Relative swirl angle [m/s]
+alpha_r_h_2 = atand(Vru_h_2/Va_h_2); % Relative swirl angle [m/s]
 
 
 % Station 3
@@ -232,7 +233,7 @@ V_h_3 = sqrt(Va_h_3^2 + Vu_h_3^2); % hub velocity [m/s]
 alpha_h_3 = atand(Vu_h_3/Va_h_3); % Swirl angle [deg]
 Vru_h_3 = U_h + Vu_h_3; % Relative swirl velocity [m/s]
 Vr_h_3 = sqrt(Va_h_3^2 + Vru_h_3^2); % Relative velocity [m/s]
-alpha_r_h_3 = atand(Vu_h_3/Va_h_3); % Relative swirl angle [m/s]
+alpha_r_h_3 = atand(Vru_h_3/Va_h_3); % Relative swirl angle [m/s]
 
 R_hub = (Vr_h_3^2 - Vr_h_2^2)/(Vr_h_3^2 - Vr_h_2^2 + V_h_2^2 - V_h_3^2);
 
@@ -264,7 +265,7 @@ V_t_2 = sqrt(Va_t_2^2 + Vu_t_2^2); % tip velocity [m/s]
 alpha_t_2 = atand(Vu_t_2/Va_t_2); % Swirl angle [deg]
 Vru_t_2 = Vu_t_2 - U_t; % Relative swirl velocity [m/s]
 Vr_t_2 = sqrt(Vru_t_2^2 + Va_t_2^2); % Relative velocity [m/s]
-alpha_r_t_2 = atand(Vu_t_2/Va_t_2); % Relative swirl angle [m/s]
+alpha_r_t_2 = atand(Vru_t_2/Va_t_2); % Relative swirl angle [m/s]
 
 
 % Station 3
@@ -274,44 +275,44 @@ V_t_3 = sqrt(Va_t_3^2 + Vu_t_3^2); % hub velocity [m/s]
 alpha_t_3 = atand(Vu_t_3/Va_t_3); % Swirl angle [deg]
 Vru_t_3 = U_t + Vu_t_3; % Relative swirl velocity [m/s]
 Vr_t_3 = sqrt(Va_t_3^2 + Vru_t_3^2); % Relative velocity [m/s]
-alpha_r_t_3 = atand(Vu_t_3/Va_t_3); % Relative swirl angle [m/s]
+alpha_r_t_3 = atand(Vru_t_3/Va_t_3); % Relative swirl angle [m/s]
 
-R_tip = (Vr_t_3^2 - Vr_t_2^2)/(Vr_t_3^2 - Vr_t_2^2 + V_t_2^2 - V_t_3^2);
+R_tip = (Vr_t_3^2 - Vr_t_2^2)/(Vr_t_3^2 - Vr_t_2^2 + V_t_2^2 - V_t_3^2); % Reaction at tip
 
 %%%%%%%%%%%%%%%%
 %%% GEOMETRY %%%
 %%%%%%%%%%%%%%%%
 
-vane_height = 0.5*((r_t_1-r_h_1)+(r_t_2-r_h_2));
-blade_height = r_t_3-r_h_3;
+vane_height = 0.5*((r_t_1-r_h_1)+(r_t_2-r_h_2)); % Vane height [m]
+blade_height = r_t_3-r_h_3; % Blade height [m]
 
-vane_actual_chord = vane_height/AR_v;
-blade_actual_chord = blade_height/AR_b;
+vane_actual_chord = vane_height/AR_v; % Vane actual chord [m]
+blade_actual_chord = blade_height/AR_b; % Blade actual chord [m]
 
 %%%%%%%%%%%%%%%%%%%%%
 %%% STAGGER ANGLE %%%
 %%%%%%%%%%%%%%%%%%%%%
 
-stagger_data = csvread('stagger_angle.csv',1);
-beta_1 = stagger_data(:,1);
-beta_2 = stagger_data(:,2:end);
-beta_2_vector = [80,75,70,65,60,55,50];
+stagger_data = csvread('stagger_angle.csv',1); % Stagger angle data 
+beta_1 = stagger_data(:,1); % beta before vane or blade
+beta_2 = stagger_data(:,2:end); % beta after vane or blade
+beta_2_vector = [80,75,70,65,60,55,50]; % set of curves that define the plot
 
-stagger_vane = interp2(beta_2_vector,beta_1,beta_2,alpha_2+dev_2,alpha_1+inc_1);
-stagger_blade = interp2(beta_2_vector,beta_1,beta_2,alpha_r_3+dev_3,alpha_r_2+inc_2);
+stagger_vane = interp2(beta_2_vector,beta_1,beta_2,alpha_2+dev_2,alpha_1+inc_1); % Vane stagger angle [deg]
+stagger_blade = interp2(beta_2_vector,beta_1,beta_2,alpha_r_3+dev_3,alpha_r_2+inc_2); % Blade stagger angle [deg]
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%% NUMBER OF MORTYS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%
 
-vane_axial_chord = vane_actual_chord * cosd(stagger_vane);
-blade_axial_chord = blade_actual_chord * cosd(stagger_blade);
+vane_axial_chord = vane_actual_chord * cosd(stagger_vane); % Axial chord of the vane [m]
+blade_axial_chord = blade_actual_chord * cosd(stagger_blade); % Axial chord of the blad [m]
 
-vane_pitch = (zweif_vane*vane_axial_chord*0.5)/((tand(alpha_1) + tand(alpha_2))* ((cosd(alpha_2))^2));
-vane_number = pi*(r_m_2+r_m_1)/vane_pitch;
+vane_pitch = (zweif_vane*vane_axial_chord*0.5)/((tand(alpha_1) + tand(alpha_2))* ((cosd(alpha_2))^2)); % Vane pitch [m]
+vane_number = pi*(r_m_2+r_m_1)/vane_pitch; % Number of vanes
 
-blade_pitch = (zweif_blade*blade_axial_chord*0.5)/((tand(alpha_r_2) + tand(alpha_r_3))* ((cosd(alpha_r_3))^2));
-blade_number = 2*pi*r_m_2/blade_pitch;
+blade_pitch = (zweif_blade*blade_axial_chord*0.5)/((tand(alpha_r_2) + tand(alpha_r_3))* ((cosd(alpha_r_3))^2)); % Blade pitch [m]
+blade_number = 2*pi*r_m_2/blade_pitch; % Number of blades
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% THICKNESS OVER CHORD %%%
@@ -323,9 +324,10 @@ vane_max_thickness = vane_actual_chord*interp1(tmaxc_data(:,1),tmaxc_data(:,2),a
 blade_max_thickness = blade_actual_chord*interp1(tmaxc_data(:,1),tmaxc_data(:,2),alpha_r_2 + inc_2 + alpha_r_3 + dev_3);
 
 
-% if error == 1
-%     fprintf('Critical Error Somewhere!\n')
-% end
+%%%%%%%%%%%%%%%%%%%
+%%% VANE LOSSES %%%
+%%%%%%%%%%%%%%%%%%%
+
 
 
 
