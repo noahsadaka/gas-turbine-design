@@ -344,7 +344,7 @@ blade_max_thickness = blade_actual_chord*interp1(tmaxc_data(:,1),tmaxc_data(:,2)
 %%% LOSSES %%%
 %%%%%%%%%%%%%%
 
-% k_Accel
+% k_Accel (component of profile losses)
 
 if M_2 <= 0.2
     K1_vane = 1;
@@ -364,6 +364,7 @@ k_accel_blade = 1-K2_blade*(1-K1_blade);
 
 
 % Ksh, will always be equal to zero for vane though since M1 is 0.125
+% Shock Losses
 if M_h_1 <= 0.4
     P_Q_sh_vane=0;
 else
@@ -379,11 +380,58 @@ end
 Ksh_blade = P_Q_sh_blade*(P_2/P_3)*(1-(1+0.5*(gamma-1)*M_r_2^2)^(gamma/(gamma-1)))/(1-(1+0.5*(gamma-1)*M_r_3^2)^(gamma/(gamma-1)));
 
     
+% Yp beta = 0
+S_C_vane = vane_pitch / vane_actual_chord; % Span to chord ratio
+S_C_blade = blade_pitch / blade_actual_chord;
+
+Yp_beta_0_data = csvread('Yp_beta1_0.csv',1);
+S_over_C = Yp_beta_0_data(:,1);
+alpha_two = [40,50,60,65,70,75,80];
+
+Yp_beta_0_vane = interp2(alpha_two,S_over_C, Yp_beta_0_data(:,2:end),alpha_2,S_C_vane); % Yp beta=0 for vane
+Yp_beta_0_blade = interp2(alpha_two , S_over_C , Yp_beta_0_data(:,2:end) , alpha_r_3 , S_C_blade); % Yp beta=0 for blade
+
+clear alpha_two S_over_C Yp_beta_0_data
+
+% Yp beta = alpha
+Yp_beta_alpha_data = csvread('Yp_beta1_alfa1.csv',1);
+S_over_C = Yp_beta_alpha_data(:,1);
+alpha_two = [40 , 50 , 55 , 60 , 65 , 70];
+
+Yp_beta_alpha_vane = interp2(alpha_two,S_over_C, Yp_beta_alpha_data(:,2:end),alpha_2,S_C_vane); % Yp beta=alpha for vane
+Yp_beta_alpha_blade = interp2(alpha_two , S_over_C , Yp_beta_alpha_data(:,2:end) , alpha_r_3 , S_C_blade); % Yp beta=alpha for blade
 
 
+% Yp and Kp
+
+Yp_AMDC_vane = Yp_beta_0_vane + abs((alpha_1+inc_1)/alpha_2) * ((alpha_1+inc_1)/alpha_2) * (Yp_beta_alpha_vane - Yp_beta_0_vane) * ((vane_max_thickness/vane_actual_chord)/0.2)^((alpha_1+inc_1)/alpha_2);
+Yp_AMDC_blade = Yp_beta_0_blade + abs((alpha_r_2+inc_2)/alpha_r_3) * ((alpha_r_2+inc_2)/alpha_r_3) * (Yp_beta_alpha_blade - Yp_beta_0_blade) * ((blade_max_thickness/blade_actual_chord)/0.2)^((alpha_r_2+inc_2)/alpha_r_3);
+
+Kp_vane = 0.914 * (2/3 * Yp_AMDC_vane * k_accel_vane + Ksh_vane);
+Kp_blade = 0.914 * (2/3 * Yp_AMDC_blade * k_accel_blade + Ksh_blade);
 
 
+% Secondary Losses
+f_AR_vane = (1-0.25 * sqrt(2 - AR_v))/AR_v;
+f_AR_blade = (1-0.25 * sqrt(2 - AR_b))/AR_b;
 
+alpha_m_vane = atand(0.5 * (tand(alpha_1) - tand(alpha_2)));
+alpha_m_blade = atand(0.5 * (tand(alpha_r_2) - tand(alpha_r_3)));
+
+Cl_vane = S_C_vane * 2 * (tand(alpha_1)+tand(alpha_2)) * cosd(alpha_m_vane);
+Cl_blade = S_C_blade * 2 * (tand(alpha_r_2)+tand(alpha_r_3)) * cosd(alpha_m_blade);
+
+Ys_AMDC_vane = 0.0334*f_AR_vane * (cosd(alpha_2)/cosd(alpha_1 + inc_1)) * (Cl_vane/S_C_vane)^2 * (cosd(alpha_2))^2/(cosd(alpha_m_vane))^2;
+Ys_AMDC_blade = 0.0334*f_AR_blade * (cosd(alpha_r_3)/cosd(alpha_r_2 + inc_2)) * (Cl_blade/S_C_blade)^2 * (cosd(alpha_r_3))^2/(cosd(alpha_m_blade))^2;
+
+K3_vane = (1/(vane_height/vane_axial_chord))^2;
+K3_blade = (1/(blade_height/blade_axial_chord))^2;
+
+Ks_vane = 1-K3_vane * (1-k_accel_vane);
+Ks_blade = 1-K3_blade * (1-k_accel_blade);
+
+Ys_vane = 1.2 * Ys_AMDC_vane*Ks_vane; % Secondary flow coefficient
+Ys_blade = 1.2 * Ys_AMDC_blade*Ks_blade;
 
 
 
