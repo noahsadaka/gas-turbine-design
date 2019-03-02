@@ -19,7 +19,7 @@ clc;clear all;
 
 % Cycle Analysis Variables
 
-% eta_i = 0.85; % desired efficiency
+eta_i = 0.85; % desired efficiency
 
 error = 0; % flag for errors
 
@@ -43,25 +43,31 @@ Cp = 1148; % Gas specific heat capacity [kg/JK]
 gamma = 1.333; % Gas Gamma
 Rg = 287; % Gas Constant
 
+% RAYMOND: values to put in the input data csv table:
+% alpha_3, M_3, R, AN2_max, the inc and dev, zweif blade and vane
+% Thanks!
+
 % Assumptions
-alpha_3 = 10; % Blade exit swirl angle [deg] Range: -5 to 30
+alpha_3 = 0; % Blade exit swirl angle [deg] Range: -5 to 30
 M_3 = 0.45; % Blade exit mach number. Range: 0.3-0.45
 R = 0.4; % Reaction at the meanline.
 max_U_h = 1100*0.3048; % Blade speed at meanline [m/s]
+AN2_max = 4.5E10; % Max AN2 [in2 rpm 0.5]
 inc_1 = 0; % Vane Incidence [deg]
 dev_2 = 0; % Vane Deviation [deg]
 inc_2 = 0; % Blade Incidence [deg]vane_axial_chord
 dev_3 = 0; % Blade Deviation [deg]
 zweif_vane = 0.7;
 zweif_blade = 0.8;
+blade_tip_clearance = 0.009;
 
 % Given Vane Variables
 AR_v = 0.7; % Vane Aspect Ratio
-TE_v = 0.045; % Vane TE Thickness [in]
+TE_v = 0.045*0.0254; % Vane TE Thickness [m]
 
 % Given Blade Variables
 AR_b = 1.45; % Blade Aspect Ratio
-TE_b = 0.025; % Blade TE Thickness [in]
+TE_b = 0.025*0.0254; % Blade TE Thickness [m]
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% MEANLINE CALCULATIONS %%%
@@ -144,7 +150,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 A_rpm = 1550*A_2;
-AN2_max = 4.5E10; % Max AN2 [in2 rpm 0.5]
 N_rpm = sqrt(AN2_max/A_rpm); % Rotation speed [rpm]
 %N_rpm = 15000;
 N_rads = N_rpm * (1/60) * (2*pi); % Rotation speed [rad/s]
@@ -432,6 +437,79 @@ Ks_blade = 1-K3_blade * (1-k_accel_blade);
 
 Ys_vane = 1.2 * Ys_AMDC_vane*Ks_vane; % Secondary flow coefficient
 Ys_blade = 1.2 * Ys_AMDC_blade*Ks_blade;
+
+% Trailing Edge Losses
+
+delta_phi_data = csvread('fig_14_enecoef.csv',1);
+
+throat_vane = vane_pitch*cosd(alpha_2 + dev_2); % Throat opening length
+throat_blade = blade_pitch*cosd(alpha_3+dev_3);
+
+thick_open_vane = TE_v / throat_vane; % TE thickness to throat opening
+thick_open_blade = TE_b / throat_blade;
+
+tet_b_0_vane = interp1(delta_phi_data(:,1),delta_phi_data(:,2),thick_open_vane); % delta phi^2 for beta = 0
+tet_b_a_vane = interp1(delta_phi_data(:,1),delta_phi_data(:,3),thick_open_vane);
+
+tet_b_0_blade = interp1(delta_phi_data(:,1),delta_phi_data(:,2),thick_open_blade); % delta phi^2 for beta = alpha
+tet_b_a_blade = interp1(delta_phi_data(:,1),delta_phi_data(:,3),thick_open_blade);
+
+tet_vane = tet_b_0_vane + abs((alpha_1+inc_1)/alpha_2)*((alpha_1+inc_1)/alpha_2)*( tet_b_a_vane- tet_b_0_vane); % delta phi^2 net
+tet_blade = tet_b_0_blade + abs((alpha_r_2+inc_2)/alpha_r_3)*((alpha_r_2+inc_2)/alpha_r_3)*( tet_b_a_blade - tet_b_0_blade);
+
+KTE_vane = ((1 - 0.5 * (gamma-1) * M_2^2*((1/(1-tet_vane))-1))^(-gamma/(gamma-1)) - 1)/(1-(1+0.5 * (gamma-1)*M_2^2)^(-gamma/(gamma-1))); % trailing edge loss coefficient
+KTE_blade = ((1 - 0.5 * (gamma-1) * M_r_3^2*((1/(1-tet_blade))-1))^(-gamma/(gamma-1)) - 1)/(1-(1+0.5 * (gamma-1)*M_r_3^2)^(-gamma/(gamma-1)));
+
+% Reynolds Number Calculations
+
+kin_visc = csvread('kinematic_viscosity.csv',1);
+
+Re_vane = (V_2*vane_actual_chord)/ interp1(kin_visc(:,1), kin_visc(:,2), T_2); % Reynolds Number
+Re_blade = (Vr_3*blade_actual_chord)/ interp1(kin_visc(:,1), kin_visc(:,2), T_3); 
+
+fre_vane = 0; % initialization
+fre_blade = 0; 
+
+if Re_vane < 2e5
+    fre_vane = (Re_vane/2e5)^-.4;
+elseif Re_vane > 10e6
+    fre_vane = (Re_vane/10e6)^-.2;
+else
+    fre_vane = 1;
+end
+
+if Re_blade < 2e5
+    fre_blade = (Re_blade/2e5)^-.4;
+elseif Re_blade > 10e6
+    fre_blade = (Re_blade/10e6)^-.2;
+else
+    fre_blade = 1;
+end
+
+
+% Kt (overall loss before tip losses)
+
+Kt_vane = fre_vane * Kp_vane + Ys_vane  + KTE_vane;
+Kt_blade = fre_blade * Kp_blade + Ys_blade + KTE_blade;
+
+% Tip clearance losses and total-to-total efficiency
+
+eta_o_vane = 1-Kt_vane;
+eta_o_blade = 1-Kt_blade;
+
+delta_k = blade_tip_clearance*blade_height; 
+
+eta_blade = eta_o_blade - 0.93 * eta_o_blade * (r_t_3/r_m_3) * (delta_k/blade_height*cosd(alpha_r_3));
+
+efficiency = eta_blade*eta_o_vane;
+fprintf('Total-to-total efficiency of %4.3f \n',efficiency)
+fprintf('Desired efficiency is %4.3f \n', eta_i)
+
+if efficiency < eta_i
+    error = 1;
+end
+
+
 
 
 
