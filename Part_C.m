@@ -33,7 +33,7 @@ To_2 = 1126.67; % Total temperature after bleed air addition [K]
 m_2 = 5.00; % Mass flow through blade [kg/s]
 
 To_3 = 972.74; % Total temperature after station [K]
-Po_3 = 142188.33; % Total pressure exiting blade, before ITD [Pa]
+Po_3 = 149453.77; % Total pressure exiting blade, before ITD [Pa]
 m_3 = m_2; % Mass flow exiting blade [kg/s]
 
 W = 883830.57; % Stage work [W]
@@ -49,16 +49,16 @@ Rg = 287; % Gas Constant
 
 % Assumptions
 alpha_3 = 0; % Blade exit swirl angle [deg] Range: -5 to 30
-M_3 = 0.45; % Blade exit mach number. Range: 0.3-0.45
-R = 0.4; % Reaction at the meanline.
+M_3 = 0.417; % Blade exit mach number. Range: 0.3-0.45
+R = 0.54; % Reaction at the meanline.
 max_U_h = 1100*0.3048; % Blade speed at meanline [m/s]
-AN2_max = 4.5E10; % Max AN2 [in2 rpm 0.5]
+AN2 = 4.5E10; % AN2 [in2 rpm 0.5]
 inc_1 = 0; % Vane Incidence [deg]
 dev_2 = 0; % Vane Deviation [deg]
 inc_2 = 0; % Blade Incidence [deg]vane_axial_chord
 dev_3 = 0; % Blade Deviation [deg]
-zweif_vane = 0.7;
-zweif_blade = 0.8;
+zweif_vane = 0.8;
+zweif_blade = 0.9;
 blade_tip_clearance = 0.009;
 
 % Given Vane Variables
@@ -150,9 +150,11 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 A_rpm = 1550*A_2;
-N_rpm = sqrt(AN2_max/A_rpm); % Rotation speed [rpm]
+N_rpm = sqrt(AN2/A_rpm); % Rotation speed [rpm]
+N_rpm_max = sqrt(AN2/A_rpm);
 %N_rpm = 15000;
 N_rads = N_rpm * (1/60) * (2*pi); % Rotation speed [rad/s]
+N_rads_max = N_rpm_max * (1/60) * (2*pi); % Rotation speed [rad/s]
 
 r_h_min = max_U_h/N_rads;
 
@@ -179,6 +181,10 @@ end
 if check_rh == 1
     fprintf('Successful r_h calculated using max hub speed\n')
     fprintf('rotational speed is %6f\n',(U/r_m_2)*(30/pi))
+end
+
+if (U/r_m_2)*(30/pi) > N_rpm_max
+    error = 1;
 end
 
 r_m_3 = r_m_2; % Mean radius at 3 [m]
