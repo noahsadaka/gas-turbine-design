@@ -1,0 +1,20 @@
+TO DO
+ - Turbine
+Person in charge: Noah
+Completion to date: ~70%
+	- Off Design Performance - noah
+	- Setup data analysis and do the analysis - Raymond
+	- lifing
+ - Compressor
+Person in charge: Nicolas and Adriana
+Completion to date: 0%
+ - Report
+Person in charge: everyone
+Completion to date: 0%
+	- Compile methodology of turbine design process - noah
+	- Describe data analysis - Raymond
+	- Add methodology of compressor - Nic and Adriana
+	- General notes: professional report, try and keep it short
+ - Presentation
+Person in charge: everyone
+Completion to date: 0%
