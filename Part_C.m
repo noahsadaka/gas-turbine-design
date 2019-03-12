@@ -33,7 +33,7 @@ To_2 = 1126.67; % Total temperature after bleed air addition [K]
 m_2 = 5.00; % Mass flow through blade [kg/s]
 
 To_3 = 972.74; % Total temperature after station [K]
-Po_3 = 149453.77; % Total pressure exiting blade, before ITD [Pa]
+Po_3 = 142188.33; % Total pressure exiting blade, before ITD [Pa]
 m_3 = m_2; % Mass flow exiting blade [kg/s]
 
 W = 883830.57; % Stage work [W]
@@ -48,9 +48,9 @@ Rg = 287; % Gas Constant
 % Thanks!
 
 % Assumptions
-alpha_3 = 0; % Blade exit swirl angle [deg] Range: -5 to 30
-M_3 = 0.417; % Blade exit mach number. Range: 0.3-0.45
-R = 0.54; % Reaction at the meanline.
+alpha_3 = 15; % Blade exit swirl angle [deg] Range: -5 to 30
+M_3 = 0.4; % Blade exit mach number. Range: 0.3-0.45
+R = 0.5; % Reaction at the meanline.
 max_U_h = 1100*0.3048; % Blade speed at meanline [m/s]
 AN2 = 4.5E10; % AN2 [in2 rpm 0.5]
 inc_1 = 0; % Vane Incidence [deg]
@@ -58,7 +58,7 @@ dev_2 = 0; % Vane Deviation [deg]
 inc_2 = 0; % Blade Incidence [deg]vane_axial_chord
 dev_3 = 0; % Blade Deviation [deg]
 zweif_vane = 0.8;
-zweif_blade = 0.9;
+zweif_blade = 0.85;
 blade_tip_clearance = 0.009;
 
 % Given Vane Variables
@@ -326,9 +326,9 @@ beta_2_vector = [80,75,70,65,60,55,50]; % set of curves that define the plot
 stagger_vane = interp2(beta_2_vector,beta_1,beta_2,alpha_2+dev_2,alpha_1+inc_1); % Vane stagger angle [deg]
 stagger_blade = interp2(beta_2_vector,beta_1,beta_2,alpha_r_3+dev_3,alpha_r_2+inc_2); % Blade stagger angle [deg]
 
-%%%%%%%%%%%%%%%%%%%%%%%%
-%%% NUMBER OF MORTYS %%%
-%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% NUMBER OF BLADES/VANES %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 vane_axial_chord = vane_actual_chord * cosd(stagger_vane); % Axial chord of the vane [m]
 blade_axial_chord = blade_actual_chord * cosd(stagger_blade); % Axial chord of the blad [m]
@@ -341,6 +341,14 @@ blade_number = 2*pi*r_m_2/blade_pitch; % Number of blades
 
 fprintf('%3.2f vanes \n',vane_number);
 fprintf('%3.2f blades \n',blade_number);
+
+vane_num_int = round(vane_number,0);
+blade_num_int = round(blade_number,0);
+
+if abs(vane_num_int-vane_number) > 0.1 || abs(blade_num_int-blade_number) > 0.1
+    error = 1;
+    fprintf('Non-integer number of blades or vanes\n');
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% THICKNESS OVER CHORD %%%
@@ -412,7 +420,6 @@ alpha_two = [40 , 50 , 55 , 60 , 65 , 70];
 Yp_beta_alpha_vane = interp2(alpha_two,S_over_C, Yp_beta_alpha_data(:,2:end),alpha_2,S_C_vane); % Yp beta=alpha for vane
 Yp_beta_alpha_blade = interp2(alpha_two , S_over_C , Yp_beta_alpha_data(:,2:end) , alpha_r_3 , S_C_blade); % Yp beta=alpha for blade
 
-
 % Yp and Kp
 
 Yp_AMDC_vane = Yp_beta_0_vane + abs((alpha_1+inc_1)/alpha_2) * ((alpha_1+inc_1)/alpha_2) * (Yp_beta_alpha_vane - Yp_beta_0_vane) * ((vane_max_thickness/vane_actual_chord)/0.2)^((alpha_1+inc_1)/alpha_2);
@@ -420,7 +427,6 @@ Yp_AMDC_blade = Yp_beta_0_blade + abs((alpha_r_2+inc_2)/alpha_r_3) * ((alpha_r_2
 
 Kp_vane = 0.914 * (2/3 * Yp_AMDC_vane * k_accel_vane + Ksh_vane);
 Kp_blade = 0.914 * (2/3 * Yp_AMDC_blade * k_accel_blade + Ksh_blade);
-
 
 % Secondary Losses
 f_AR_vane = (1-0.25 * sqrt(2 - AR_v))/AR_v;
@@ -432,8 +438,8 @@ alpha_m_blade = atand(0.5 * (tand(alpha_r_2) - tand(alpha_r_3)));
 Cl_vane = S_C_vane * 2 * (tand(alpha_1)+tand(alpha_2)) * cosd(alpha_m_vane);
 Cl_blade = S_C_blade * 2 * (tand(alpha_r_2)+tand(alpha_r_3)) * cosd(alpha_m_blade);
 
-Ys_AMDC_vane = 0.0334*f_AR_vane * (cosd(alpha_2)/cosd(alpha_1 + inc_1)) * (Cl_vane/S_C_vane)^2 * (cosd(alpha_2))^2/(cosd(alpha_m_vane))^2;
-Ys_AMDC_blade = 0.0334*f_AR_blade * (cosd(alpha_r_3)/cosd(alpha_r_2 + inc_2)) * (Cl_blade/S_C_blade)^2 * (cosd(alpha_r_3))^2/(cosd(alpha_m_blade))^2;
+Ys_AMDC_vane = 0.0334*f_AR_vane * (cosd(alpha_2)/cosd(alpha_1 + inc_1)) * (Cl_vane/S_C_vane)^2 * (cosd(alpha_2))^2/(cosd(alpha_m_vane))^3;
+Ys_AMDC_blade = 0.0334*f_AR_blade * (cosd(alpha_r_3)/cosd(alpha_r_2 + inc_2)) * (Cl_blade/S_C_blade)^2 * (cosd(alpha_r_3))^2/(cosd(alpha_m_blade))^3;
 
 K3_vane = (1/(vane_height/vane_axial_chord))^2;
 K3_blade = (1/(blade_height/blade_axial_chord))^2;
@@ -449,7 +455,7 @@ Ys_blade = 1.2 * Ys_AMDC_blade*Ks_blade;
 delta_phi_data = csvread('fig_14_enecoef.csv',1);
 
 throat_vane = vane_pitch*cosd(alpha_2 + dev_2); % Throat opening length
-throat_blade = blade_pitch*cosd(alpha_3+dev_3);
+throat_blade = blade_pitch*cosd(alpha_3 + dev_3);
 
 thick_open_vane = TE_v / throat_vane; % TE thickness to throat opening
 thick_open_blade = TE_b / throat_blade;
@@ -505,7 +511,7 @@ eta_o_blade = 1-Kt_blade;
 
 delta_k = blade_tip_clearance*blade_height; 
 
-eta_blade = eta_o_blade - 0.93 * eta_o_blade * (r_t_3/r_m_3) * (delta_k/blade_height*cosd(alpha_r_3));
+eta_blade = eta_o_blade - 0.93 * eta_o_blade * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
 
 efficiency = eta_blade*eta_o_vane;
 fprintf('Total-to-total efficiency of %4.3f \n',efficiency)
@@ -515,7 +521,24 @@ if efficiency < eta_i
     error = 1;
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% OFF DESIGN PERFORMANCE %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-
-
+% U_od = 0.9 * U; % off design U speed
+% 
+% % Station 2 Relative Velocity Triangle
+% Vru_2_od = Vu_2 - U_od; % Relative swirl velocity [m/s]
+% Vr_2_od = sqrt(Va_2^2 + Vru_2_od^2); % Relative velocity [m/s]
+% alpha_r_2_od = atand(Vru_2_od / Va_2); % Relative swirl angle [deg]
+% To_r_2_od = T_2 + Vr_2_od^2/(2*Cp);
+% Po_r_2_od = P_2 * (T_2 / To_r_2_od)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
+% M_r_2_od = Vr_2_od/sqrt(gamma*Rg*T_2); % Relative Mach
+% 
+% % Station 3 Relative Velocity Triangle
+% Vru_3_od = U_od + Vu_3; % Relative swirl velocity [m/s]
+% Vr_3_od = sqrt(Vru_3_od^2 + Va_3^2); % Relative Velocity [m/s]
+% alpha_r_3_od = atand(Vr_3_od/Va_3); % Relative swirl angle [deg]
+% To_r_3_od = T_3 + Vr_3_od^2/(2*Cp);
+% Po_r_3_od = P_3 * (T_3 / To_r_3_od)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
+% M_r_3_od = Vr_3_od/sqrt(gamma*Rg*T_3); % Relative Mach
