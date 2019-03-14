@@ -511,7 +511,16 @@ eta_o_blade = 1-Kt_blade;
 
 delta_k = blade_tip_clearance*blade_height; 
 
-eta_blade = eta_o_blade - 0.93 * eta_o_blade * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
+% eta_blade = eta_o_blade - 0.93 * eta_o_blade * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
+de1 = 0.93 * (eta_o_blade) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
+de2 = 0.93 * (eta_o_blade-de1) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
+
+while abs(de1-de2) > 0.00001
+de1 = 0.93 * (eta_o_blade-de2) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
+de2 = 0.93 * (eta_o_blade-de1) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
+end
+
+eta_blade=eta_o_blade-de2;
 
 efficiency = eta_blade*eta_o_vane;
 fprintf('Total-to-total efficiency of %4.3f \n',efficiency)
