@@ -49,9 +49,9 @@ Rg = 287; % Gas Constant
 % Thanks!
 
 % Assumptions
-alpha_3 = 15; % Blade exit swirl angle [deg] Range: -5 to 30
+alpha_3 = 10; % Blade exit swirl angle [deg] Range: -5 to 30
 M_3 = 0.45; % Blade exit mach number. Range: 0.3-0.45
-R = 0.52; % Reaction at the meanline.
+R = 0.4; % Reaction at the meanline.
 inc_1_des = 0; % design incidence [deg]
 inc_2_des = 0; % design incidence 
 max_U_h = 1100*0.3048; % Max Blade speed at hub [m/s]
@@ -60,7 +60,7 @@ dev_2 = 0; % Vane Deviation [deg]
 dev_3 = 0; % Blade Deviation [deg]
 zweif_vane = 0.8; % Range: 0.7-0.8
 zweif_blade = 0.95; % Range: 0.85-0.95
-blade_tip_clearance = 0.009;
+blade_tip_clearance = 0.009; 
 
 % Given Vane Variables
 AR_v = 0.7; % Vane Aspect Ratio
@@ -134,13 +134,15 @@ R_check2 = (Vr_3^2 - Vr_2^2)/(2*U*(Vu_2-Vu_3));
 if Po_1 > Po_2 && Po_r_2 > Po_r_3
 else
     error = 1;
-    fprintf('Pressure physics is not respected \n')
+    fprintf('!!!!! Pressure physics is not respected !!!!!\n')
 end
 
 %%% Incidence
 induced_incidence = csvread('induced_incidence.csv',1);
-inc_1 = interp1(induced_incidence(:,1),induced_incidence(:,2),alpha_1);
-inc_2 = interp1(induced_incidence(:,1),induced_incidence(:,2),alpha_r_2);
+% inc_1 = interp1(induced_incidence(:,1),induced_incidence(:,2),alpha_1);
+% inc_2 = interp1(induced_incidence(:,1),induced_incidence(:,2),alpha_r_2);
+inc_1=0;
+inc_2=0;
 beta_1 = alpha_1 - inc_1 - inc_1_des;
 beta_r_2 = alpha_r_2 - inc_2 - inc_2_des;
 
@@ -252,7 +254,7 @@ R_hub = (Vr_h_3^2 - Vr_h_2^2)/(Vr_h_3^2 - Vr_h_2^2 + V_h_2^2 - V_h_3^2);
 
 if R_hub < 0
     error = 1;
-    fprintf('Hub reaction is negative\n')
+    fprintf('!!!!!! Hub reaction is negative !!!!!\n')
 end
 
 if U_h > max_U_h
@@ -502,9 +504,6 @@ Kt_blade = fre_blade * Kp_blade + Ys_blade + KTE_blade;
 
 % Tip clearance losses and total-to-total efficiency
 
-%eta_o_vane = 1-Kt_vane;
-%eta_o_blade = 1-Kt_blade;
-
 zeta_vane = Kt_vane/(1+0.5*gamma*M_2^2);
 zeta_blade = Kt_blade/(1+0.5*gamma*M_r_3^2);
 
@@ -521,7 +520,7 @@ de1 = 0.93 * (eta_o-de2) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3
 de2 = 0.93 * (eta_o-de1) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
 end
 
-eta_o=eta_o - de2;
+eta_o = eta_o - de2;
 
 fprintf('Total-to-total efficiency of %4.3f \n',eta_o)
 fprintf('Desired efficiency is %4.3f \n', eta_i)
@@ -530,139 +529,145 @@ fprintf('Desired efficiency is %4.3f \n', eta_i)
 %     error = 1;
 % end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% OFF DESIGN PERFORMANCE %%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% OFF DESIGN PERFORMANCE %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% U_od = 0.9 * U; % off design U speed
-% 
-% % Station 2 Relative Velocity Triangle
-% Vru_2_od = Vu_2 - U_od; % Relative swirl velocity [m/s]
-% Vr_2_od = sqrt(Va_2^2 + Vru_2_od^2); % Relative velocity [m/s]
-% alpha_r_2_od = atand(Vru_2_od / Va_2); % Relative swirl angle [deg]
-% To_r_2_od = T_2 + Vr_2_od^2/(2*Cp);
-% Po_r_2_od = P_2 * (T_2 / To_r_2_od)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
-% M_r_2_od = Vr_2_od/sqrt(gamma*Rg*T_2); % Relative Mach
-% 
-% % Station 3 Relative Velocity Triangle
-% Vru_3_od = U_od + Vu_3; % Relative swirl velocity [m/s]
-% Vr_3_od = sqrt(Vru_3_od^2 + Va_3^2); % Relative Velocity [m/s]
-% alpha_r_3_od = atand(Vr_3_od/Va_3); % Relative swirl angle [deg]
-% To_r_3_od = T_3 + Vr_3_od^2/(2*Cp);
-% Po_r_3_od = P_3 * (T_3 / To_r_3_od)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
-% M_r_3_od = Vr_3_od/sqrt(gamma*Rg*T_3); % Relative Mach
-% 
-% inc_2_od = -alpha_r_2_od+alpha_r_2;
-% dev_3_od = alpha_r_3_od-alpha_r_3;
-% 
-% 
-% % Station 2 hub velocity triangle, for Ksh losses
-% Vru_h_2_od = Vu_h_2 -0.9*U_h; % Relative swirl velocity [m/s]
-% Vr_h_2_od = sqrt(Vru_h_2_od^2 + Va_h_2^2); % Relative velocity [m/s]
-% alpha_r_h_2_od = atand(Vru_h_2_od/Va_h_2); % Relative swirl angle [m/s]
-% Tor_h_2_od = T_h_2 + Vr_h_2_od^2/(2*Cp);
-% Mr_h_2_od = Vr_h_2_od/sqrt(gamma*Rg*T_h_2);
-% 
-% 
-% % Redo losses for off-design blade
-% 
-% % k_Accel (component of profile losses)
-% 
-% if M_r_3_od<=0.2
-%     K1_blade_od = 1;
-% else
-%     K1_blade_od = 1-1.25*(M_r_3_od-0.2);
-% end
-% K2_blade_od = (M_r_2_od/M_r_3_od)^2;
-% k_accel_blade_od = 1-K2_blade_od*(1-K1_blade_od);
-% 
-% 
-% % Ksh, will always be equal to zero for vane though since M1 is 0.125
-% % Shock Losses
-% 
-% %%%% FIX THIS PART UP WITH HUB GEOMETRY OFF DESIGN
-% if Mr_h_2_od <= 0.4
-%      P_Q_sh_blade=0;
-% else
-%     P_Q_sh_blade = (r_h_3/r_t_3)*(0.75*(Mr_h_2_od-0.4)^1.75);
-% end
-% Ksh_blade_od = P_Q_sh_blade*(P_2/P_3)*(1-(1+0.5*(gamma-1)*M_r_2_od^2)^(gamma/(gamma-1)))/(1-(1+0.5*(gamma-1)*M_r_3_od^2)^(gamma/(gamma-1)));
-% 
-%     
-% % Yp beta = 0
-% alpha_two = [40,50,60,65,70,75,80];
-% Yp_beta_0_blade_od = interp2(alpha_two , S_over_C , Yp_beta_0_data(:,2:end) , alpha_r_3_od , S_C_blade); % Yp beta=0 for blade
-% 
-% % Yp beta = alpha
-% alpha_two = [40 , 50 , 55 , 60 , 65 , 70];
-% Yp_beta_alpha_blade_od = interp2(alpha_two , S_over_C_2 , Yp_beta_alpha_data(:,2:end) , alpha_r_3_od , S_C_blade); % Yp beta=alpha for blade
-% 
-% % Yp and Kp
-% 
-% Yp_AMDC_blade_od = Yp_beta_0_blade_od + abs((alpha_r_2_od+inc_2_od)/alpha_r_3_od) * ((alpha_r_2_od+inc_2_od)/alpha_r_3_od) * (Yp_beta_alpha_blade_od - Yp_beta_0_blade_od) * ((blade_max_thickness/blade_actual_chord)/0.2)^((alpha_r_2_od+inc_2_od)/alpha_r_3_od);
-% 
-% Kp_blade_od = 0.914 * (2/3 * Yp_AMDC_blade_od * k_accel_blade_od + Ksh_blade_od);
-% 
-% % Secondary Losses
-% alpha_m_blade_od = atand(0.5 * (tand(alpha_r_2_od) - tand(alpha_r_3_od)));
-% 
-% Cl_blade_od = S_C_blade * 2 * (tand(alpha_r_2_od)+tand(alpha_r_3_od)) * cosd(alpha_m_blade_od);
-% 
-% Ys_AMDC_blade_od = 0.0334*f_AR_blade * (cosd(alpha_r_3_od)/cosd(alpha_r_2_od + inc_2_od)) * (Cl_blade_od/S_C_blade)^2 * (cosd(alpha_r_3_od))^2/(cosd(alpha_m_blade_od))^3;
-% 
-% K3_blade_od = (1/(blade_height/blade_axial_chord))^2;
-% 
-% Ks_blade_od = 1-K3_blade_od * (1-k_accel_blade_od);
-% 
-% Ys_blade_od = 1.2 * Ys_AMDC_blade_od*Ks_blade_od;
-% 
-% % Trailing Edge Losses
-% 
-% tet_blade_od = tet_b_0_blade + abs((alpha_r_2_od+inc_2_od)/alpha_r_3_od)*((alpha_r_2_od+inc_2_od)/alpha_r_3_od)*( tet_b_a_blade - tet_b_0_blade);
-% 
-% KTE_blade_od = ((1 - 0.5 * (gamma-1) * M_r_3_od^2*((1/(1-tet_blade_od))-1))^(-gamma/(gamma-1)) - 1)/(1-(1+0.5 * (gamma-1)*M_r_3_od^2)^(-gamma/(gamma-1)));
-% 
-% % Reynolds Number Calculations
-% 
-% Re_blade_od = (Vr_3_od*blade_actual_chord)/ interp1(kin_visc(:,1), kin_visc(:,2), T_3); 
-% 
-% fre_blade_od = 0; 
-% 
-% if Re_blade_od < 2e5
-%     fre_blade_od = (Re_blade_od/2e5)^-.4;
-% elseif Re_blade_od > 10e6
-%     fre_blade_od = (Re_blade_od/10e6)^-.2;
-% else
-%     fre_blade_od = 1;
-% end
-% 
-% 
-% % Kt (overall loss before tip losses)
-% 
-% Kt_blade_od = fre_blade_od * Kp_blade_od + Ys_blade_od + KTE_blade_od;
-% 
-% % Tip clearance losses and total-to-total efficiency
-% 
-% eta_o_blade_od = 1-Kt_blade_od;
-% 
-% delta_k = blade_tip_clearance*blade_height; 
-% 
-% % eta_blade = eta_o_blade - 0.93 * eta_o_blade * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
-% de1_od = 0.93 * (eta_o_blade_od) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
-% de2_od = 0.93 * (eta_o_blade_od-de1_od) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
-% 
-% while abs(de1_od-de2_od) > 0.00001
-% de1_od = 0.93 * (eta_o_blade-de2) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
-% de2_od = 0.93 * (eta_o_blade-de1) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
-% end
-% 
-% eta_blade_od=eta_o_blade_od-de2_od;
-% 
-% efficiency_od = eta_blade_od*eta_o_vane;
-% fprintf('Total-to-total off-design efficiency of %4.3f \n',efficiency_od)
-% fprintf('Desired efficiency is %4.3f \n', eta_i)
-% 
-% 
+U_od = 0.9 * U; % off design U speed
+
+% Station 2 Relative Velocity Triangle
+Vru_2_od = Vu_2 - U_od; % Relative swirl velocity [m/s]
+Vr_2_od = sqrt(Va_2^2 + Vru_2_od^2); % Relative velocity [m/s]
+alpha_r_2_od = atand(Vru_2_od / Va_2); % Relative swirl angle [deg]
+To_r_2_od = T_2 + Vr_2_od^2/(2*Cp);
+Po_r_2_od = P_2 * (T_2 / To_r_2_od)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
+M_r_2_od = Vr_2_od/sqrt(gamma*Rg*T_2); % Relative Mach
+
+% Station 3 Relative Velocity Triangle
+Vru_3_od = U_od + Vu_3; % Relative swirl velocity [m/s]
+Vr_3_od = sqrt(Vru_3_od^2 + Va_3^2); % Relative Velocity [m/s]
+alpha_r_3_od = atand(Vr_3_od/Va_3); % Relative swirl angle [deg]
+To_r_3_od = T_3 + Vr_3_od^2/(2*Cp);
+Po_r_3_od = P_3 * (T_3 / To_r_3_od)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
+M_r_3_od = Vr_3_od/sqrt(gamma*Rg*T_3); % Relative Mach
+
+inc_2_od = alpha_r_2_od - beta_r_2;
+beta_2_od = alpha_r_2_od - inc_2_od;
 
 
+% Station 2 hub velocity triangle, for Ksh losses
+Vru_h_2_od = Vu_h_2 -0.9*U_h; % Relative swirl velocity [m/s]
+Vr_h_2_od = sqrt(Vru_h_2_od^2 + Va_h_2^2); % Relative velocity [m/s]
+alpha_r_h_2_od = atand(Vru_h_2_od/Va_h_2); % Relative swirl angle [m/s]
+Tor_h_2_od = T_h_2 + Vr_h_2_od^2/(2*Cp);
+Mr_h_2_od = Vr_h_2_od/sqrt(gamma*Rg*T_h_2);
 
+%%% losses for off-design blade
+
+% k_Accel (component of profile losses)
+
+if M_r_3_od<=0.2
+    K1_blade_od = 1;
+else
+    K1_blade_od = 1-1.25*(M_r_3_od-0.2);
+end
+K2_blade_od = (M_r_2_od/M_r_3_od)^2;
+k_accel_blade_od = 1-K2_blade_od*(1-K1_blade_od);
+
+
+% Ksh, will always be equal to zero for vane though since M1 is 0.125
+% Shock Losses
+%%% Double check this because for some reason i starred it mentally
+if Mr_h_2_od <= 0.4
+     P_Q_sh_blade=0;
+else
+    P_Q_sh_blade = (r_h_3/r_t_3)*(0.75*(Mr_h_2_od-0.4)^1.75);
+end
+Ksh_blade_od = P_Q_sh_blade*(P_2/P_3)*(1-(1+0.5*(gamma-1)*M_r_2_od^2)^(gamma/(gamma-1)))/(1-(1+0.5*(gamma-1)*M_r_3_od^2)^(gamma/(gamma-1)));
+
+    
+% Yp beta = 0
+alpha_two = [40,50,60,65,70,75,80];
+Yp_beta_0_blade_od = interp2(alpha_two , S_over_C , Yp_beta_0_data(:,2:end) , alpha_r_3_od , S_C_blade); % Yp beta=0 for blade
+
+% Yp beta = alpha
+alpha_two = [40 , 50 , 55 , 60 , 65 , 70];
+Yp_beta_alpha_blade_od = interp2(alpha_two , S_over_C_2 , Yp_beta_alpha_data(:,2:end) , alpha_r_3_od , S_C_blade); % Yp beta=alpha for blade
+
+% Yp and Kp - Moustapha method
+LE_dia = 0.001; % Leading edge diameter [m] (assumed for now)
+
+Chi_p = (LE_dia/blade_pitch)^-1.6 * (cosd(beta_2_od) / cosd(alpha_r_3_od))^-2 * (alpha_r_2_od - alpha_r_2);
+
+if Chi_p > 0 && Chi_p < 800
+    phi_p_od = 0.788e-5 * Chi_p + 0.56e-7 * Chi_p^2 + 0.4e-10 * Chi_p^3 + 2.054e-19 * Chi_p^6;    
+elseif Chi_p > -800 && Chi_p < 0
+    phi_p_od = -5.1734e-6 * Chi_p + 7.6902e-9 * Chi_p^2;
+else
+    error = 1;
+    fprintf('Chi_p out of bounds \n');
+    phi_p_od = 9999;
+end
+
+phi_p0 = (1 + Kp_blade/(K1_blade_od + Kp_blade*K2_blade_od))^-1;
+
+phi_p = phi_p0+phi_p_od;
+
+Kp_blade_od = (K1_blade_od * (1-phi_p))/(phi_p-K2_blade_od*(1-phi_p));
+
+% Secondary Losses - Moustapha method
+Chi_s = ((alpha_r_2_od - beta_2_od)/(beta_2_od + alpha_r_3_od)) * (cosd(beta_2_od) / cosd(alpha_r_3_od))^-1.5 * (LE_dia/blade_actual_chord)^-0.3;
+
+if Chi_s > -0.4 && Chi_s < 0
+    Ys_blade_od = Ys_blade * (exp(0.9*Chi_s) + 13*Chi_s^2 + 400*Chi_s^4);
+elseif Chi_s >0 && Chi_s <0.3
+    Ys_blade_od = Ys_blade * exp(0.9*Chi_s);
+else
+    error = 1;
+    fprintf('Chi_s out of bounds \n');
+    Ys_blade_od = 9999;
+end
+
+% Trailing Edge Losses
+
+tet_blade_od = tet_b_0_blade + abs((alpha_r_2_od+inc_2_od)/alpha_r_3_od)*((alpha_r_2_od+inc_2_od)/alpha_r_3_od)*( tet_b_a_blade - tet_b_0_blade);
+
+KTE_blade_od = ((1 - 0.5 * (gamma-1) * M_r_3_od^2*((1/(1-tet_blade_od))-1))^(-gamma/(gamma-1)) - 1)/(1-(1+0.5 * (gamma-1)*M_r_3_od^2)^(-gamma/(gamma-1)));
+
+% Reynolds Number Calculations
+
+Re_blade_od = (Vr_3_od*blade_actual_chord)/ interp1(kin_visc(:,1), kin_visc(:,2), T_3); 
+
+fre_blade_od = 0; 
+
+if Re_blade_od < 2e5
+    fre_blade_od = (Re_blade_od/2e5)^-.4;
+elseif Re_blade_od > 10e6
+    fre_blade_od = (Re_blade_od/10e6)^-.2;
+else
+    fre_blade_od = 1;
+end
+
+% Kt (overall loss before tip losses)
+
+Kt_blade_od = fre_blade_od * Kp_blade_od + Ys_blade_od + KTE_blade_od;
+
+% Tip clearance losses and total-to-total efficiency
+
+delta_k = blade_tip_clearance*blade_height; 
+
+zeta_blade_od = Kt_blade_od/(1+0.5*gamma*M_r_3_od^2);
+
+eta_o_od = (1 + ((zeta_vane*V_2^2 + zeta_blade_od*Vr_3_od^2)/(2*Cp*(To_1-To_3))))^(-1);
+
+de1 = 0.93 * (eta_o_od) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
+de2 = 0.93 * (eta_o_od-de1) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
+
+while abs(de1-de2) > 0.00001
+de1 = 0.93 * (eta_o_od-de2) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
+de2 = 0.93 * (eta_o_od-de1) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
+end
+
+eta_o_od = eta_o_od - de2;
+
+fprintf('Total-to-total off-design efficiency of %4.3f \n',eta_o_od)
