@@ -45,19 +45,18 @@ gamma = 1.333; % Gas Gamma
 Rg = 287; % Gas Constant
 
 % RAYMOND: values to put in the input data csv table:
-% alpha_3, M_3, R, AN2, the inc and dev, zweif blade and vane
+% alpha_3, M_3, R, AN2, the inc, zweif blade and vane
 % Thanks!
 
 % Assumptions
-alpha_3 = 10; % Blade exit swirl angle [deg] Range: -5 to 30
+alpha_3 = 20; % Blade exit swirl angle [deg] Range: -5 to 30
 M_3 = 0.45; % Blade exit mach number. Range: 0.3-0.45
 R = 0.4; % Reaction at the meanline.
 inc_1_des = 0; % design incidence [deg]
 inc_2_des = 0; % design incidence 
 max_U_h = 1100*0.3048; % Max Blade speed at hub [m/s]
 AN2 = 4.5E10; % AN2 [in2 rpm 0.5]
-dev_2 = 0; % Vane Deviation [deg]
-dev_3 = 0; % Blade Deviation [deg]
+% N = 20000; % RPM
 zweif_vane = 0.8; % Range: 0.7-0.8
 zweif_blade = 0.95; % Range: 0.85-0.95
 blade_tip_clearance = 0.009; 
@@ -95,7 +94,6 @@ V_3 = M_3 * sqrt(gamma * Rg * T_3); % Blade Exit Inlet Velocity [m/s]
 Va_3 = V_3 * cosd(alpha_3); % Axial velocity at station 3 [m/s]
 A_3 = m_3 / (rho_3 * Va_3); % Annulus Area at station 3 [m^2]
 Vu_3 =  sqrt(V_3^2 - Va_3^2); % Swirl velocity [m/s]
-alpha_3 = atand(Vu_3/Va_3); % Swirl angle [deg]
 
 % Station 2 Absolute Velocity Triangle
 Ws = W/m_2; % Specific work [W/kg]
@@ -138,13 +136,8 @@ else
 end
 
 %%% Incidence
-induced_incidence = csvread('induced_incidence.csv',1);
-% inc_1 = interp1(induced_incidence(:,1),induced_incidence(:,2),alpha_1);
-% inc_2 = interp1(induced_incidence(:,1),induced_incidence(:,2),alpha_r_2);
-inc_1=0;
-inc_2=0;
-beta_1 = alpha_1 - inc_1 - inc_1_des;
-beta_r_2 = alpha_r_2 - inc_2 - inc_2_des;
+beta_1 = alpha_1 - inc_1_des;
+beta_r_2 = alpha_r_2 - inc_2_des;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% RADII AND STRUCTURAL LIMITATIONS %%%
@@ -167,7 +160,7 @@ r_h_2 = (-A_2/pi + 4*r_m_2^2)/(4 * r_m_2); % Hub radius at 2 [m]
 interval = 0.0001:0.0001:0.5;
 check_rh = 0;
 
-if r_h_2 > r_h_min % if rhub is violating the max rim speed
+if N_rads*r_h_2 > max_U_h % if rhub is violating the max rim speed
     fprintf('Using RPM does not work. Testing with max hub speed\n');
     for i=1:length(interval)
         if abs(interval(i)-((max_U_h/U)*0.5*(interval(i)+ sqrt(A_2/pi + interval(i)^2)))) < 0.0001
@@ -179,7 +172,6 @@ if r_h_2 > r_h_min % if rhub is violating the max rim speed
 end
 
 if check_rh == 1
-    fprintf('Successful r_h calculated using max hub speed\n')
     fprintf('rotational speed is %6f\n',(U/r_m_2)*(30/pi))
 end
 
@@ -207,6 +199,7 @@ else
     fprintf('Vane inlet tip radius is %5.4f inches\n',r_t_1*39.37)
     fprintf('Mean blade radius is %5.4f inches\n',r_m_2*39.37)
     fprintf('blade tip radius is %5.4f inches\n',r_t_2*39.37)
+    fprintf('Rotational Speed of %7f RPM\n',N_rpm)
 end
 
 
@@ -259,7 +252,7 @@ end
 
 if U_h > max_U_h
     error = 1;
-    fprintf('fuck velocities\n')
+    fprintf('rim speed too high \n')
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% TIP VELOCITY TRIANGLES %%%
@@ -323,8 +316,8 @@ beta_1_d = stagger_data(:,1); % beta before vane or blade
 beta_2_d = stagger_data(:,2:end); % beta after vane or blade
 beta_2_vector = [80,75,70,65,60,55,50]; % set of curves that define the plot
 
-stagger_vane = interp2(beta_2_vector,beta_1_d,beta_2_d,alpha_2+dev_2,beta_1); % Vane stagger angle [deg]
-stagger_blade = interp2(beta_2_vector,beta_1_d,beta_2_d,alpha_r_3+dev_3,beta_r_2); % Blade stagger angle [deg]
+stagger_vane = interp2(beta_2_vector,beta_1_d,beta_2_d,alpha_2,beta_1); % Vane stagger angle [deg]
+stagger_blade = interp2(beta_2_vector,beta_1_d,beta_2_d,alpha_r_3,beta_r_2); % Blade stagger angle [deg]
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% NUMBER OF BLADES/VANES %%%
@@ -356,8 +349,8 @@ end
 
 tmaxc_data = csvread('tmaxc_v_betas.csv',1);
 
-vane_max_thickness = vane_actual_chord*interp1(tmaxc_data(:,1),tmaxc_data(:,2),beta_1 + alpha_2 + dev_2);
-blade_max_thickness = blade_actual_chord*interp1(tmaxc_data(:,1),tmaxc_data(:,2),beta_r_2 + alpha_r_3 + dev_3);
+vane_max_thickness = vane_actual_chord*interp1(tmaxc_data(:,1),tmaxc_data(:,2),beta_1 + alpha_2);
+blade_max_thickness = blade_actual_chord*interp1(tmaxc_data(:,1),tmaxc_data(:,2),beta_r_2 + alpha_r_3);
 
 %%%%%%%%%%%%%%
 %%% LOSSES %%%
@@ -453,8 +446,8 @@ Ys_blade = 1.2 * Ys_AMDC_blade*Ks_blade;
 
 delta_phi_data = csvread('fig_14_enecoef.csv',1);
 
-throat_vane = vane_pitch*cosd(alpha_2 + dev_2); % Throat opening length
-throat_blade = blade_pitch*cosd(alpha_3 + dev_3);
+throat_vane = vane_pitch*cosd(alpha_2); % Throat opening length
+throat_blade = blade_pitch*cosd(alpha_3);
 
 thick_open_vane = TE_v / throat_vane; % TE thickness to throat opening
 thick_open_blade = TE_b / throat_blade;
@@ -511,23 +504,22 @@ eta_o = (1 + ((zeta_vane*V_2^2 + zeta_blade*Vr_3^2)/(2*Cp*(To_1-To_3))))^(-1);
 
 delta_k = blade_tip_clearance*blade_height; 
 
-% eta_blade = eta_o_blade - 0.93 * eta_o_blade * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
-de1 = 0.93 * (eta_o) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
-de2 = 0.93 * (eta_o-de1) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
+de = 0.93 * (eta_o) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
+de_init = de;
+eta_des = 1;
+K_clr = 0;
 
-while abs(de1-de2) > 0.00001
-de1 = 0.93 * (eta_o-de2) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
-de2 = 0.93 * (eta_o-de1) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
+% Iterate on the delta eta by adding K_clr and converging on delta eta
+while abs(de - abs(eta_des - eta_o)) > 0.005
+    K_clr = K_clr + 0.0001;
+    Kt_blade = Kt_blade + 0.0001;
+    zeta_blade = Kt_blade/(1+0.5*gamma*M_r_3^2);
+    eta_des = (1 + ((zeta_vane*V_2^2 + zeta_blade*Vr_3^2)/(2*Cp*(To_1-To_3))))^(-1);
+    de = 0.93 * (eta_des) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
 end
 
-eta_o = eta_o - de2;
-
-fprintf('Total-to-total efficiency of %4.3f \n',eta_o)
+fprintf('Total-to-total efficiency of %4.3f \n',eta_des)
 fprintf('Desired efficiency is %4.3f \n', eta_i)
-
-% if eta_i < eta_o
-%     error = 1;
-% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% OFF DESIGN PERFORMANCE %%%
@@ -595,7 +587,7 @@ alpha_two = [40 , 50 , 55 , 60 , 65 , 70];
 Yp_beta_alpha_blade_od = interp2(alpha_two , S_over_C_2 , Yp_beta_alpha_data(:,2:end) , alpha_r_3_od , S_C_blade); % Yp beta=alpha for blade
 
 % Yp and Kp - Moustapha method
-LE_dia = 0.001; % Leading edge diameter [m] (assumed for now)
+LE_dia = 0.00254; % Leading edge diameter [m] (assumed for now)
 
 Chi_p = (LE_dia/blade_pitch)^-1.6 * (cosd(beta_2_od) / cosd(alpha_r_3_od))^-2 * (alpha_r_2_od - alpha_r_2);
 
@@ -660,13 +652,8 @@ zeta_blade_od = Kt_blade_od/(1+0.5*gamma*M_r_3_od^2);
 
 eta_o_od = (1 + ((zeta_vane*V_2^2 + zeta_blade_od*Vr_3_od^2)/(2*Cp*(To_1-To_3))))^(-1);
 
-de1 = 0.93 * (eta_o_od) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
-de2 = 0.93 * (eta_o_od-de1) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
+de2 = 0.93 * (eta_o_od) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
 
-while abs(de1-de2) > 0.00001
-de1 = 0.93 * (eta_o_od-de2) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
-de2 = 0.93 * (eta_o_od-de1) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
-end
 
 eta_o_od = eta_o_od - de2;
 
