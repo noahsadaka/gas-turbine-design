@@ -40,9 +40,6 @@ kin_visc = csvread('kinematic_viscosity.csv',1); % kinematic viscosity with temp
 
 eta_i = 0.85; % desired efficiency
 
-error = 0; % flag for errors
-error_p = 0; % flag for pressure errors
-
 % Cycle Analysis Values
 To_1 = 1147.98; % Turbine Inlet Temperature [K]
 Po_1 = 315940.86; % Turbine Inlet Pressure [Pa]
@@ -74,6 +71,9 @@ for alf_ind = 1:length(alpha_3_inp)
         for r_ind = 1:length(R_imp)
             for U_ind = 1:length(U_mult)
                 for AN2_ind = 1:length(AN2_mult)
+error = 0; % flag for errors
+error_p = 0; % flag for pressure errors
+
 
 % % Initial Conditions
                 alpha_3 = alpha_3_inp(alf_ind); % Blade exit swirl angle [deg] Range: -5 to 30
