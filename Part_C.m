@@ -66,28 +66,28 @@ R_imp = 0.3:0.01:0.4;
 AN2_mult = 0.9:0.1:1;
 U_mult = 0.9:0.01:1;
 % 
-for alf_ind = 1:length(alpha_3_inp)
-    for m_ind = 1:length(M_3_imp)
-        for r_ind = 1:length(R_imp)
-            for U_ind = 1:length(U_mult)
-                for AN2_ind = 1:length(AN2_mult)
+% for alf_ind = 1:length(alpha_3_inp)
+%     for m_ind = 1:length(M_3_imp)
+%         for r_ind = 1:length(R_imp)
+%             for U_ind = 1:length(U_mult)
+%                 for AN2_ind = 1:length(AN2_mult)
 error = 0; % flag for errors
 error_p = 0; % flag for pressure errors
 
 
 % % Initial Conditions
-                alpha_3 = alpha_3_inp(alf_ind); % Blade exit swirl angle [deg] Range: -5 to 30
-                M_3 = M_3_imp(m_ind); % Blade exit mach number. Range: 0.3-0.45
-                R = R_imp(r_ind); % Reaction at the meanline.
-% alpha_3 = 5;
-% M_3 = .3;
-% R = .35;
+%                 alpha_3 = alpha_3_inp(alf_ind); % Blade exit swirl angle [deg] Range: -5 to 30
+%                 M_3 = M_3_imp(m_ind); % Blade exit mach number. Range: 0.3-0.45
+%                 R = R_imp(r_ind); % Reaction at the meanline.
+alpha_3 = 5;
+M_3 = .4;
+R = .35;
 inc_1_des = 0; % design incidence [deg]
 inc_2_des = 0; % design incidence
-U_h = U_mult(U_ind)*1100*0.3048; % Max Blade speed at hub [m/s]
-% U_h=    .91*1100*.3048;
-AN2 = AN2_mult(AN2_ind)*4.5E10; % AN2 [in2 rpm^2]
-% AN2 = 4.5E10;
+% U_h = U_mult(U_ind)*1100*0.3048; % Max Blade speed at hub [m/s]
+U_h=    .91*1100*.3048;
+% AN2 = AN2_mult(AN2_ind)*4.5E10; % AN2 [in2 rpm^2]
+AN2 = .7*4.5E10;
 zweif_vane = 0.8; % Range: 0.7-0.8
 zweif_blade = 0.95; % Range: 0.85-0.95
 blade_tip_clearance = 0.009;
@@ -177,9 +177,9 @@ end
 
 % Station 2 Absolute Velocity Triangle (Part 2)
 Vu_2 = Ws/U - Vu_3;
-                if Vu_2 > V_2
-                    continue
-                end
+%                 if Vu_2 > V_2
+%                     continue
+%                 end
 Va_2 = sqrt(V_2^2-Vu_2^2);
 alpha_2 = atand(Vu_2/Va_2);
 rho_2 = m_2/(Va_2*A_2);
@@ -349,7 +349,7 @@ blade_num_int = round(blade_number,0);
 
 if abs(vane_num_int-vane_number) > 0.1 || abs(blade_num_int-blade_number) > 0.1
 %     error = 1;
-    fprintf('Non-integer number of blades or vanes\n');
+%     fprintf('Non-integer number of blades or vanes\n');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -485,8 +485,8 @@ KTE_blade = ((1 - 0.5 * (gamma-1) * M_r_3^2*((1/(1-tet_blade))-1))^(-gamma/(gamm
 
 % Reynolds Number Calculations
 
-Re_vane = (V_2*vane_actual_chord)/ interp1(kin_visc(:,1), kin_visc(:,2), T_2); % Reynolds Number
-Re_blade = (Vr_3*blade_actual_chord)/ interp1(kin_visc(:,1), kin_visc(:,2), T_3);
+Re_vane = (rho_2*V_2*vane_actual_chord)/ interp1(kin_visc(:,1), kin_visc(:,2), T_2); % Reynolds Number
+Re_blade = (rho_3*Vr_3*blade_actual_chord)/ interp1(kin_visc(:,1), kin_visc(:,2), T_3);
 
 fre_vane = 0; % initialization
 fre_blade = 0;
@@ -501,8 +501,8 @@ end
 
 if Re_blade < 2e5
     fre_blade = (Re_blade/2e5)^-.4;
-elseif Re_blade > 10e6
-    fre_blade = (Re_blade/10e6)^-.2;
+elseif Re_blade > 10^6
+    fre_blade = (Re_blade/10^6)^-.2;
 else
     fre_blade = 1;
 end
@@ -519,7 +519,7 @@ zeta_blade = Kt_blade/(1+0.5*gamma*M_r_3^2);
 
 eta_o = (1 + ((zeta_vane*V_2^2 + zeta_blade*Vr_3^2)/(2*Cp*(To_1-To_3))))^(-1);
 
-delta_k = blade_tip_clearance*blade_height;
+delta_k = blade_tip_clearance*blade_height + 0.005*0.0254;
 
 de = 0.93 * (eta_o) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
 de_init = de;
@@ -536,7 +536,7 @@ while abs(de - abs(eta_des - eta_o)) > 0.005
 end
 
 fprintf('Total-to-total efficiency of %4.3f \n',eta_des)
-fprintf('Desired efficiency is %4.3f \n', eta_i)
+% fprintf('Desired efficiency is %4.3f \n', eta_i)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% OFF DESIGN PERFORMANCE %%%
@@ -622,14 +622,14 @@ KTE_blade_od = ((1 - 0.5 * (gamma-1) * M_r_3_od^2*((1/(1-tet_blade_od))-1))^(-ga
 
 % Reynolds Number Calculations
 
-Re_blade_od = (Vr_3_od*blade_actual_chord)/ interp1(kin_visc(:,1), kin_visc(:,2), T_3);
+Re_blade_od = (rho_3*Vr_3_od*blade_actual_chord)/ interp1(kin_visc(:,1), kin_visc(:,2), T_3);
 
 fre_blade_od = 0;
 
 if Re_blade_od < 2e5
     fre_blade_od = (Re_blade_od/2e5)^-.4;
-elseif Re_blade_od > 10e6
-    fre_blade_od = (Re_blade_od/10e6)^-.2;
+elseif Re_blade_od > 10^6
+    fre_blade_od = (Re_blade_od/10^6)^-.2;
 else
     fre_blade_od = 1;
 end
@@ -639,8 +639,6 @@ end
 Kt_blade_od = fre_blade_od * Kp_blade_od + Ys_blade_od + KTE_blade_od;
 
 % Tip clearance losses and total-to-total efficiency
-
-delta_k = blade_tip_clearance*blade_height;
 
 zeta_blade_od = Kt_blade_od/(1+0.5*gamma*M_r_3_od^2);
 
@@ -662,11 +660,12 @@ while abs(de2 - abs(eta_des_od - eta_o_od)) > 0.005
 end
 
 fprintf('Total-to-total off-design efficiency of %4.3f \n',eta_des_od)
-                if error_p == 0
-                    pause
-                end
-                end
-            end
-        end
-    end
-end
+%                 if error_p == 0 && error == 0
+%                     pause
+%                 end
+%                 end
+%             end
+%         end
+%     end
+% end
+% 
