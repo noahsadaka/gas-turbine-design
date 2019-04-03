@@ -59,12 +59,12 @@ W = 883830.57; % Stage work [W]
 Cp = 1148; % Gas specific heat capacity [kg/JK]
 gamma = 1.333; % Gas Gamma
 Rg = 287; % Gas Constant
-
-alpha_3_inp = -5:.1:5;
-M_3_imp = 0.3:0.01:0.45;
-R_imp = 0.3:0.01:0.4;
-AN2_mult = 0.9:0.1:1;
-U_mult = 0.9:0.01:1;
+% 
+% alpha_3_inp = -5:.1:5;
+% M_3_imp = 0.3:0.01:0.45;
+% R_imp = 0.3:0.01:0.4;
+% AN2_mult = 0.9:0.1:1;
+% U_mult = 0.9:0.01:1;
 % 
 % for alf_ind = 1:length(alpha_3_inp)
 %     for m_ind = 1:length(M_3_imp)
@@ -79,15 +79,15 @@ error_p = 0; % flag for pressure errors
 %                 alpha_3 = alpha_3_inp(alf_ind); % Blade exit swirl angle [deg] Range: -5 to 30
 %                 M_3 = M_3_imp(m_ind); % Blade exit mach number. Range: 0.3-0.45
 %                 R = R_imp(r_ind); % Reaction at the meanline.
-alpha_3 = 5;
-M_3 = .4;
-R = .35;
+alpha_3 = 20;
+M_3 = .30;
+R = .36;
 inc_1_des = 0; % design incidence [deg]
 inc_2_des = 0; % design incidence
 % U_h = U_mult(U_ind)*1100*0.3048; % Max Blade speed at hub [m/s]
-U_h=    .91*1100*.3048;
+U_h=    .82*1100*.3048;
 % AN2 = AN2_mult(AN2_ind)*4.5E10; % AN2 [in2 rpm^2]
-AN2 = .7*4.5E10;
+AN2 = .83*4.5E10;
 zweif_vane = 0.8; % Range: 0.7-0.8
 zweif_blade = 0.95; % Range: 0.85-0.95
 blade_tip_clearance = 0.009;
@@ -290,6 +290,7 @@ T_t_2 = To_2 - V_t_2^2/(2*Cp);
 M_t_2 = V_t_2 / sqrt(gamma*Rg*T_t_2);
 Tor_t_2 = T_t_2 + Vr_t_2^2/(2*Cp);
 Mr_t_2 = Vr_t_2/sqrt(gamma*Rg*T_t_2);
+Po_r_2_t = P_2 * (T_2 / Tor_t_2)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
 
 
 % Station 3
@@ -304,8 +305,16 @@ T_t_3 = To_3 - V_t_3^2/(2*Cp);
 M_t_3 = V_t_3 / sqrt(gamma*Rg*T_t_3);
 Tor_t_3 = T_h_3 + Vr_t_3^2/(2*Cp);
 Mr_t_3 = Vr_t_3/sqrt(gamma*Rg*T_t_3);
+Po_r_3_t = P_3 * (T_3 / Tor_t_3)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
 
 R_tip = (Vr_t_3^2 - Vr_t_2^2)/(Vr_t_3^2 - Vr_t_2^2 + V_t_2^2 - V_t_3^2); % Reaction at tip
+
+if Po_r_2_t > Po_r_3_t
+else
+    error = 1;
+    error_p=1;
+    fprintf('!!!!! Pressure physics is not respected !!!!!\n')
+end
 
 %%%%%%%%%%%%%%%%
 %%% GEOMETRY %%%
@@ -519,7 +528,7 @@ zeta_blade = Kt_blade/(1+0.5*gamma*M_r_3^2);
 
 eta_o = (1 + ((zeta_vane*V_2^2 + zeta_blade*Vr_3^2)/(2*Cp*(To_1-To_3))))^(-1);
 
-delta_k = blade_tip_clearance*blade_height + 0.005*0.0254;
+delta_k = blade_tip_clearance*blade_height + 0.005*0.0254; 
 
 de = 0.93 * (eta_o) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3)));
 de_init = de;
@@ -543,6 +552,16 @@ fprintf('Total-to-total efficiency of %4.3f \n',eta_des)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 U_od = 0.9 * U; % off design U speed
+To_3_od = To_2 - .9*Ws/Cp;
+
+% Fix Absolute Velocity Triangle
+
+T_3_od = To_3_od / (1 + 0.5 * (gamma - 1) * M_3^2); % Temperature at Blade Exit [K]
+V_3_od = M_3 * sqrt(gamma * Rg * T_3_od); % Blade Exit Inlet Velocity [m/s]
+Va_3_od = sqrt(V_3_od^2 - Vu_3^2);
+alpha_3_od = atand(Vu_3/Va_3_od);
+rho_3_od = m_3/(A_3*Va_3_od);
+P_3_od = rho_3_od*Rg*T_3_od;
 
 % Station 2 Relative Velocity Triangle
 Vru_2_od = Vu_2 - U_od; % Relative swirl velocity [m/s]
@@ -554,13 +573,11 @@ M_r_2_od = Vr_2_od/sqrt(gamma*Rg*T_2); % Relative Mach
 
 % Station 3 Relative Velocity Triangle
 Vru_3_od = U_od + Vu_3; % Relative swirl velocity [m/s]
-Vr_3_od = sqrt(Vru_3_od^2 + Va_3^2); % Relative Velocity [m/s]
-alpha_r_3_od = atand(Vr_3_od/Va_3); % Relative swirl angle [deg]
-To_r_3_od = T_3 + Vr_3_od^2/(2*Cp);
-Po_r_3_od = P_3 * (T_3 / To_r_3_od)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
+Vr_3_od = sqrt(Vru_3_od^2 + Va_3_od^2); % Relative Velocity [m/s]
+alpha_r_3_od = atand(Vr_3_od/Va_3_od); % Relative swirl angle [deg]
+To_r_3_od = T_3_od + Vr_3_od^2/(2*Cp);
+Po_r_3_od = P_3_od * (T_3_od / To_r_3_od)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
 M_r_3_od = Vr_3_od/sqrt(gamma*Rg*T_3); % Relative Mach
-
-inc_2_od = alpha_r_2_od - beta_r_2;
 
 % Station 2 hub velocity triangle, for Ksh losses
 Vru_h_2_od = Vu_h_2 -0.9*U_h; % Relative swirl velocity [m/s]
@@ -568,6 +585,8 @@ Vr_h_2_od = sqrt(Vru_h_2_od^2 + Va_h_2^2); % Relative velocity [m/s]
 alpha_r_h_2_od = atand(Vru_h_2_od/Va_h_2); % Relative swirl angle [m/s]
 Tor_h_2_od = T_h_2 + Vr_h_2_od^2/(2*Cp);
 Mr_h_2_od = Vr_h_2_od/sqrt(gamma*Rg*T_h_2);
+
+inc_2_od = alpha_r_2_od - beta_r_2;
 
 %%% losses for off-design blade
 
@@ -622,7 +641,7 @@ KTE_blade_od = ((1 - 0.5 * (gamma-1) * M_r_3_od^2*((1/(1-tet_blade_od))-1))^(-ga
 
 % Reynolds Number Calculations
 
-Re_blade_od = (rho_3*Vr_3_od*blade_actual_chord)/ interp1(kin_visc(:,1), kin_visc(:,2), T_3);
+Re_blade_od = (rho_3*Vr_3_od*blade_actual_chord)/ interp1(kin_visc(:,1), kin_visc(:,2), T_3_od);
 
 fre_blade_od = 0;
 
@@ -642,7 +661,7 @@ Kt_blade_od = fre_blade_od * Kp_blade_od + Ys_blade_od + KTE_blade_od;
 
 zeta_blade_od = Kt_blade_od/(1+0.5*gamma*M_r_3_od^2);
 
-eta_o_od = (1 + ((zeta_vane*V_2^2 + zeta_blade_od*Vr_3_od^2)/(2*Cp*(To_1-To_3))))^(-1);
+eta_o_od = (1 + ((zeta_vane*V_2^2 + zeta_blade_od*Vr_3_od^2)/(2*Cp*(To_1-To_3_od))))^(-1);
 
 de2 = 0.93 * (eta_o_od) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
 
@@ -655,7 +674,7 @@ while abs(de2 - abs(eta_des_od - eta_o_od)) > 0.005
     K_clr_od = K_clr_od + 0.0001;
     Kt_blade_od = Kt_blade_od + 0.0001;
     zeta_blade_od = Kt_blade_od/(1+0.5*gamma*M_r_3_od^2);
-    eta_des_od = (1 + ((zeta_vane*V_2^2 + zeta_blade_od*Vr_3_od^2)/(2*Cp*(To_1-To_3))))^(-1);
+    eta_des_od = (1 + ((zeta_vane*V_2^2 + zeta_blade_od*Vr_3_od^2)/(2*Cp*(To_1-T_3_od))))^(-1);
     de2 = 0.93 * (eta_des_od) * (r_t_3/r_m_3) * (delta_k/(blade_height*cosd(alpha_r_3_od)));
 end
 
