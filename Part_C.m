@@ -43,14 +43,14 @@ eta_i = 0.85; % desired efficiency
 % Cycle Analysis Values
 To_1 = 1147.98; % Turbine Inlet Temperature [K]
 Po_1 = 315940.86; % Turbine Inlet Pressure [Pa]
-m_1 = 4.842; % Turbine Inlet Massflow [kg/s]
+m_1 = 4.895; % Turbine Inlet Massflow [kg/s]
 
 To_2 = 1126.67; % Total temperature after bleed air addition [K]
 
 m_2 = 5; % Mass flow through blade [kg/s]
 
-To_3 = 972.74; % Total temperature after station [K]
-Po_3 = 142188.33; % Total pressure exiting blade, before ITD [Pa]
+To_3 = 974.42; % Total temperature after station [K]
+Po_3 = 151212.2; % Total pressure exiting blade, before ITD [Pa]
 m_3 = m_2; % Mass flow exiting blade [kg/s]
 
 W = 883830.57; % Stage work [W]
@@ -79,17 +79,18 @@ error_p = 0; % flag for pressure errors
 %                 alpha_3 = alpha_3_inp(alf_ind); % Blade exit swirl angle [deg] Range: -5 to 30
 %                 M_3 = M_3_imp(m_ind); % Blade exit mach number. Range: 0.3-0.45
 %                 R = R_imp(r_ind); % Reaction at the meanline.
-alpha_3 = 20;
-M_3 = .30;
-R = .36;
+alpha_3 = 24;
+M_3 = .32;
+R = .45;
 inc_1_des = 0; % design incidence [deg]
-inc_2_des = 0; % design incidence
+inc_2_des = 3; % design incidence
 % U_h = U_mult(U_ind)*1100*0.3048; % Max Blade speed at hub [m/s]
-U_h=    .82*1100*.3048;
+% U_h=    .85*1100*.3048;
+U_h=295.05;
 % AN2 = AN2_mult(AN2_ind)*4.5E10; % AN2 [in2 rpm^2]
-AN2 = .83*4.5E10;
-zweif_vane = 0.8; % Range: 0.7-0.8
-zweif_blade = 0.95; % Range: 0.85-0.95
+AN2 = 3.6E10;
+zweif_vane = 0.89; % Range: 0.7-0.8
+zweif_blade = 0.91; % Range: 0.85-0.95
 blade_tip_clearance = 0.009;
 
 % Given Vane Variables
@@ -99,7 +100,7 @@ TE_v = 0.045*0.0254; % Vane TE Thickness [m]
 % Given Blade Variables
 AR_b = 1.45; % Blade Aspect Ratio
 TE_b = 0.025*0.0254; % Blade TE Thickness [m]
-
+% for i=1:1:1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% MEANLINE CALCULATIONS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -477,6 +478,12 @@ Ys_blade = 1.2 * Ys_AMDC_blade*Ks_blade;
 throat_vane = vane_pitch*cosd(alpha_2); % Throat opening length
 throat_blade = blade_pitch*cosd(alpha_r_3);
 
+throat_vane_h = vane_pitch*cosd(alpha_h_2);
+throat_blade_h = blade_pitch*cosd(alpha_r_h_2);
+
+throat_vane_t = vane_pitch*cosd(alpha_t_2);
+throat_blade_t = blade_pitch*cosd(alpha_r_t_2);
+
 thick_open_vane = TE_v / throat_vane; % TE thickness to throat opening
 thick_open_blade = TE_b / throat_blade;
 
@@ -688,3 +695,4 @@ fprintf('Total-to-total off-design efficiency of %4.3f \n',eta_des_od)
 %     end
 % end
 % 
+% end
