@@ -149,6 +149,8 @@ r_h_2 = U_h/N_rads; % hub radius [m]
 
 r_t_2 = sqrt(A_2/pi +r_h_2^2);
 
+r_t_3 = r_t_2; % Tip radius at 3 [m]
+
 r_m_2 = 0.5*(r_t_2+r_h_2);
 
 U = N_rads * r_m_2;
@@ -158,8 +160,6 @@ r_m_3 = r_m_2; % Mean radius at 3 [m]
 r_h_3 = r_h_2; % Hub radius at 3 [m]
 r_h_1 = r_h_2; % Hub radius at 1 [m] Assuming hub radius is cst
 
-r_t_2 = 2*r_m_2 - r_h_2; % Tip radius at 2 [m]
-r_t_3 = r_t_2; % Tip radius at 3 [m]
 
 r_t_1 = sqrt(A_1/pi + r_h_1^2); % Tip radius at 1 [m]
 r_m_1 = 0.5*(r_t_1 + r_h_1); % Mean radius at 1 [m]
@@ -198,7 +198,7 @@ M_r_2 = Vr_2/sqrt(gamma*Rg*T_2); % Relative Mach
 % Station 3 Relative Velocity Triangle
 Vru_3 = U + Vu_3; % Relative swirl velocity [m/s]
 Vr_3 = sqrt(Vru_3^2 + Va_3^2); % Relative Velocity [m/s]
-alpha_r_3 = atand(Vr_3/Va_3); % Relative swirl angle [deg]
+alpha_r_3 = atand(Vru_3/Va_3); % Relative swirl angle [deg]
 To_r_3 = T_3 + Vr_3^2/(2*Cp);
 Po_r_3 = P_3 * (T_3 / To_r_3)^(-gamma / (gamma - 1)); % Relative Total Pressure[Pa]
 M_r_3 = Vr_3/sqrt(gamma*Rg*T_3); % Relative Mach
