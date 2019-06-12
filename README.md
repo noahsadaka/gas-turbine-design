@@ -7,8 +7,4 @@ The Part_C.m script calculates:
  - Rotation speed of the turbine and geometry of the vane and blade
  - Loss coefficients for nozzle and blade
  - Total-to-total efficiency of the entire stage
-
-Still to do:
- - Determine the properties for an off-design 10% rotational speed reduction
- - Lifing of the blade
- - CATIA model of the stage
+ - Efficiency for a 10% speed reduction off-design phase
